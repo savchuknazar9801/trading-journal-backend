@@ -1,0 +1,15 @@
+
+# Environment variables 
+.env 
+
+# Dependencies 
+node_modules/
+
+# Build outputs 
+dist/
+
+
+# Admin details
+trackedge-journal-f199a-firebase-adminsdk-fbsvc-6d377698ad.json
+
+Todo

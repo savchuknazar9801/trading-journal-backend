@@ -1,0 +1,734 @@
+openapi: 3.0.0
+info:
+  title: Trading Platform API
+  description: API for managing user profiles, trades, strategies, and trading plans
+  version: 1.0.0
+servers:
+  - url: https://api.yourplatform.com/v1
+    description: Production server
+  - url: https://dev-api.yourplatform.com/v1
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: All endpoints except /users (POST) require Authorization header with format 'Bearer {token}'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Error message description
+        errorCode:
+          type: string
+          example: auth/user-not-found
+
+    User:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: uLnDmhwlUfWd1W9XQxoQeRdSq7p1
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        subscription:
+          type: string
+          enum: [free, basic, premium]
+          example: basic
+
+    UserProfile:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        emailVerified:
+          type: boolean
+          example: true
+        creationTime:
+          type: string
+          format: date-time
+          example: 2023-04-01T12:00:00.000Z
+        lastSignInTime:
+          type: string
+          format: date-time
+          example: 2023-04-10T15:30:00.000Z
+        name:
+          type: string
+          example: John Doe
+        subscription:
+          type: string
+          enum: [free, basic, premium]
+          example: basic
+
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - subscription
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePassword123!
+        subscription:
+          type: string
+          enum: [free, basic, premium]
+          example: basic
+
+    UpdateEmailRequest:
+      type: object
+      required:
+        - newEmail
+      properties:
+        newEmail:
+          type: string
+          format: email
+          example: new.email@example.com
+
+    UpdatePasswordRequest:
+      type: object
+      required:
+        - newPassword
+      properties:
+        newPassword:
+          type: string
+          format: password
+          example: NewSecurePassword456!
+
+    UpdateNameRequest:
+      type: object
+      required:
+        - newName
+      properties:
+        newName:
+          type: string
+          example: John Smith
+
+    UpdateSubscriptionRequest:
+      type: object
+      required:
+        - newSubscription
+      properties:
+        newSubscription:
+          type: string
+          enum: [free, basic, premium]
+          example: premium
+
+    Trade:
+      type: object
+      properties:
+        tradeId:
+          type: string
+          example: 7nfD8hUuLqP2cR5oKqpM
+        symbol:
+          type: string
+          example: AAPL
+        entryPrice:
+          type: number
+          format: float
+          example: 180.75
+        exitPrice:
+          type: number
+          format: float
+          example: 185.25
+        quantity:
+          type: number
+          example: 10
+        entryDate:
+          type: string
+          format: date-time
+          example: 2023-04-05T09:30:00.000Z
+        exitDate:
+          type: string
+          format: date-time
+          example: 2023-04-07T15:45:00.000Z
+        direction:
+          type: string
+          enum: [long, short]
+          example: long
+        status:
+          type: string
+          enum: [open, closed]
+          example: closed
+        profitLoss:
+          type: number
+          format: float
+          example: 450.00
+        notes:
+          type: string
+          example: Earnings play with stop loss at $178
+
+    CreateTradeRequest:
+      type: object
+      required:
+        - trade
+      properties:
+        trade:
+          $ref: '#/components/schemas/Trade'
+
+    UpdateTradeRequest:
+      type: object
+      required:
+        - newTrade
+      properties:
+        newTrade:
+          $ref: '#/components/schemas/Trade'
+
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      description: Register a new user with email, password, name, and subscription level
+      tags:
+        - User Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User successfully created
+                  data:
+                    type: object
+                    properties:
+                      userId:
+                        type: string
+                        example: uLnDmhwlUfWd1W9XQxoQeRdSq7p1
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me:
+    get:
+      summary: Get user profile
+      description: Retrieve the current user's profile information
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User profile retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete user
+      description: Delete the current user's account
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: User deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me/email:
+    patch:
+      summary: Update email
+      description: Update the current user's email address
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmailRequest'
+      responses:
+        '200':
+          description: Email updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Email updated successfully
+        '400':
+          description: Invalid email format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me/password:
+    patch:
+      summary: Update password
+      description: Update the current user's password
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePasswordRequest'
+      responses:
+        '200':
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password updated successfully
+        '400':
+          description: Invalid password format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me/name:
+    patch:
+      summary: Update name
+      description: Update the current user's name
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNameRequest'
+      responses:
+        '200':
+          description: Name updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Name updated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me/subscription:
+    patch:
+      summary: Update subscription
+      description: Update the current user's subscription level
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Subscription updated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trades:
+    post:
+      summary: Create a trade
+      description: Create a new trade entry for the current user
+      tags:
+        - Trades
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTradeRequest'
+      responses:
+        '201':
+          description: Trade created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Trade successfully created
+                  tradeId:
+                    type: string
+                    example: 7nfD8hUuLqP2cR5oKqpM
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    get:
+      summary: Get all trades
+      description: Retrieve all trades for the current user
+      tags:
+        - Trades
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      responses:
+        '200':
+          description: Trades retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: All trades retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trade'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trades/{tradeId}:
+    parameters:
+      - name: tradeId
+        in: path
+        required: true
+        description: Unique identifier of the trade
+        schema:
+          type: string
+    
+    get:
+      summary: Get a single trade
+      description: Retrieve a specific trade by ID
+      tags:
+        - Trades
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      responses:
+        '200':
+          description: Trade retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Trade retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/Trade'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Update a trade
+      description: Update a specific trade by ID
+      tags:
+        - Trades
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTradeRequest'
+      responses:
+        '200':
+          description: Trade updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Trade updated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete a trade
+      description: Delete a specific trade by ID
+      tags:
+        - Trades
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Bearer token for authentication. Format 'Bearer {token}'
+      responses:
+        '200':
+          description: Trade deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Trade deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
