@@ -5,16 +5,6 @@
 
 export const calculatePnL = (currencyPair: string, entryPrice: number, exitPrice: number, lotSize: number, type: 'long' | 'short'): number => {
 
-    // Check if lot size is valid
-    if (lotSize <= 0) {
-        throw new Error('Lot size must be greater than 0');
-    }
-
-    // Check if entry and exit prices are valid
-    if (entryPrice <= 0 || exitPrice <= 0) {
-        throw new Error('Entry and exit prices must be greater than 0');
-    }
-
     // Check if the direction is valid
     if (type !== 'long' && type !== 'short') {
         throw new Error('Direction must be either "long" or "short"');
